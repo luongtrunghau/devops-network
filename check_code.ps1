@@ -2,7 +2,7 @@ $botToken = "9282153038:AAHfmVZA6umXxR9eMA8GpPtF0rziGze124U"
 $chatId   = "8189104771"
 
 $filePath = "D:\DevOps-Network\app\index.html"
-$content = Get-Content $filePath -Raw
+$content = Get-Content $filePath -Joi "`n"
 
 if ($content -notmatch "</html>") {
     Write-Host "[CI ERROR] Phat hien loi cu phap! Dang gui bao dong Telegram..." -ForegroundColor Red
