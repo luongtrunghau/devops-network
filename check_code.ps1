@@ -4,38 +4,44 @@ $hasError = $false
 # 1. Kiểm tra các file Terraform (.tf)
 $tfFiles = Get-ChildItem -Filter "*.tf"
 foreach ($file in $tfFiles) {
-    $content = Get-Content $file.FullName
-    # Kiểm tra cơ bản dấu ngoặc nhọn hoặc cú pháp trống
     Write-Host "Dang kiem tra file Terraform: $($file.Name)"
 }
 
-# 2. Kiểm tra file index.html (Kiểm tra thẻ đóng mở cơ bản)
-if (Test-Path "index.html") {
-    Write-Host "Dang kiem tra file index.html..."
-    $htmlContent = Get-Content "index.html" -Raw
+# 2. Kiểm tra file index.html (Nằm trong thư mục app/index.html theo Git status của bạn)
+$htmlPath = "app/index.html"
+if (Test-Path $htmlPath) {
+    Write-Host "Dang kiem tra file $htmlPath..."
+    $htmlContent = Get-Content $htmlPath -Raw
     
-    # Ví dụ quy tắc kiểm tra đơn giản: Nếu mở thẻ html mà thiếu thẻ đóng </html>
-    if ($htmlContent -match "<html" -and $htmlContent -notmatch "</html>") {
-        Write-Host "[LOI] File index.html bi thieu the dong </html>!" -ForegroundColor Red
+    # Kiểm tra tính đối xứng cơ bản của các thẻ HTML chính
+    $openHtml = ([regex]::Matches($htmlContent, "<html\b", "IgnoreCase")).Count
+    $closeHtml = ([regex]::Matches($htmlContent, "</html>", "IgnoreCase")).Count
+    
+    $openBody = ([regex]::Matches($htmlContent, "<body\b", "IgnoreCase")).Count
+    $closeBody = ([regex]::Matches($htmlContent, "</body>", "IgnoreCase")).Count
+
+    if ($openHtml -ne $closeHtml) {
+        Write-Host "[LOI] File HTML lech so luong the <html> (Mo: $openHtml, Dong: $closeHtml)!" -ForegroundColor Red
         $hasError = $true
     }
     
-    # Kiểm tra thẻ body
-    if ($htmlContent -match "<body" -and $htmlContent -notmatch "</body>") {
-        Write-Host "[LOI] File index.html bi thieu the dong </body>!" -ForegroundColor Red
+    if ($openBody -ne $closeBody) {
+        Write-Host "[LOI] File HTML lech so luong the <body> (Mo: $openBody, Dong: $closeBody)!" -ForegroundColor Red
         $hasError = $true
     }
+} else {
+    Write-Host "Khong tim thay file $htmlPath"
 }
 
 # 3. Xử lý kết quả và gửi thông báo Telegram nếu có lỗi
 if ($hasError) {
-    Write-Host "[CI ERROR] Phat hien loi cu phap trong du an!"
+    Write-Host "[CI ERROR] Phat hien loi cu phap trong file HTML!"
     
     $token = $env:TELEGRAM_BOT_TOKEN
     $chatId = $env:TELEGRAM_CHAT_ID
     
     if ($token -and $chatId) {
-        $message = "[CI ERROR] Phat hien loi trong file index.html hoac Terraform tren nhanh main!"
+        $message = "[CI ERROR] Phat hien loi cu phap trong app/index.html tren nhanh main!"
         $url = "https://api.telegram.org/bot$token/sendMessage?chat_id=$chatId&text=$([Uri]::EscapeDataString($message))"
         
         try {
