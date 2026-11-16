@@ -1,17 +1,16 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline with Automated Testing
 
 on:
   push:
     branches: [ "main" ]
 
-# Cấp quyền để GitHub Actions tự động xuất bản trang web
 permissions:
   contents: read
   pages: write
   id-token: write
 
 jobs:
-  build-and-deploy:
+  build-test-deploy:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -21,21 +20,46 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Code Check Script
+      # Bước 1: Kiểm tra cú pháp code (PowerShell)
+      - name: Run Syntax Check Script
         shell: pwsh
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: ./check_code.ps1
 
-      # Chỉ chạy các bước dưới đây nếu file check_code.ps1 vượt qua (tích xanh)
+      # Bước 2: Cài đặt và chạy Automated UI/Functional Test
+      - name: Setup Node.js & Playwright
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright & Run Automated Tests
+        run: |
+          npm init -y
+          npm install playwright
+          npx playwright install chromium --with-deps
+          node test_app.mjs
+
+      # Báo động Telegram nếu Automated Test thất bại
+      - name: Notify Telegram on Test Failure
+        if: failure()
+        shell: pwsh
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          $msg = "[CI/CD ALERT] Trang web bi hong chuc nang trong luc chay Automated Testing! Da chan Deploy."
+          $url = "https://api.telegram.org/bot$env:TELEGRAM_BOT_TOKEN/sendMessage?chat_id=$env:TELEGRAM_CHAT_ID&text=$([Uri]::EscapeDataString($msg))"
+          Invoke-RestMethod -Uri $url -Method Get
+
+      # Bước 3: Chỉ Deploy nếu vượt qua cả Syntax Check lẫn Automated Test
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Trỏ thẳng vào thư mục chứa file index.html của bạn
           path: 'app'
 
       - name: Deploy to GitHub Pages
