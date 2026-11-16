@@ -1,4 +1,4 @@
-name: CI/CD Pipeline with Automated Testing
+name: CI/CD with Advanced UI Testing
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   id-token: write
 
 jobs:
-  build-test-deploy:
+  test-and-deploy:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -20,40 +20,40 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Bước 1: Kiểm tra cú pháp code (PowerShell)
-      - name: Run Syntax Check Script
+      # 1. Kiểm tra cú pháp cơ bản
+      - name: Run Syntax Check
         shell: pwsh
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: ./check_code.ps1
 
-      # Bước 2: Cài đặt và chạy Automated UI/Functional Test
-      - name: Setup Node.js & Playwright
+      # 2. Cài đặt Node.js và chạy Playwright Test đa thiết bị
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install Playwright & Run Automated Tests
+      - name: Install Dependencies & Run UI Tests
         run: |
           npm init -y
           npm install playwright
           npx playwright install chromium --with-deps
           node test_app.mjs
 
-      # Báo động Telegram nếu Automated Test thất bại
-      - name: Notify Telegram on Test Failure
+      # 3. Báo động Telegram khẩn cấp nếu bài test giao diện/Mobile bị lỗi
+      - name: Notify Telegram on UI Test Failure
         if: failure()
         shell: pwsh
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          $msg = "[CI/CD ALERT] Trang web bi hong chuc nang trong luc chay Automated Testing! Da chan Deploy."
+          $msg = "[CI ERROR] Robot phát hiện lỗi giao diện hoặc lỗi di động (Mobile Responsive)! Đã chặn Deploy."
           $url = "https://api.telegram.org/bot$env:TELEGRAM_BOT_TOKEN/sendMessage?chat_id=$env:TELEGRAM_CHAT_ID&text=$([Uri]::EscapeDataString($msg))"
           Invoke-RestMethod -Uri $url -Method Get
 
-      # Bước 3: Chỉ Deploy nếu vượt qua cả Syntax Check lẫn Automated Test
+      # 4. Chỉ Deploy lên GitHub Pages nếu vượt qua toàn bộ bài test khó nhằn
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
