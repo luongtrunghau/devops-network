@@ -1,26 +1,43 @@
-name: CI Pipeline with Terraform & Telegram
+name: CI/CD Pipeline
 
 on:
   push:
     branches: [ "main" ]
 
+# Cấp quyền để GitHub Actions tự động xuất bản trang web
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
-  build-and-check:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      - name: Run Code Check Script
+        shell: pwsh
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: ./check_code.ps1
 
-    - name: Terraform Init
-      run: terraform init
+      # Chỉ chạy các bước dưới đây nếu file check_code.ps1 vượt qua (tích xanh)
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
 
-    - name: Run Validation Script
-      env:
-        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      run: |
-        pwsh -ExecutionPolicy Bypass -File ./check_code.ps1
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Trỏ thẳng vào thư mục chứa file index.html của bạn
+          path: 'app'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
