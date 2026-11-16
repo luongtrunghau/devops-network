@@ -40,18 +40,23 @@ jobs:
           npm install playwright
           npx playwright install chromium --with-deps
           node test_app.mjs
-
-      # 3. Báo động Telegram khẩn cấp nếu bài test giao diện/Mobile bị lỗi
+# 3. Chụp ảnh màn hình lỗi và gửi thẳng qua Telegram
       - name: Notify Telegram on UI Test Failure
         if: failure()
-        shell: pwsh
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          $msg = "[CI ERROR] Robot phát hiện lỗi giao diện hoặc lỗi di động (Mobile Responsive)! Đã chặn Deploy."
-          $url = "https://api.telegram.org/bot$env:TELEGRAM_BOT_TOKEN/sendMessage?chat_id=$env:TELEGRAM_CHAT_ID&text=$([Uri]::EscapeDataString($msg))"
-          Invoke-RestMethod -Uri $url -Method Get
+          if [ -f "error_screenshot.png" ]; then
+            curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendPhoto" \
+              -F chat_id="$TELEGRAM_CHAT_ID" \
+              -F photo=@"error_screenshot.png" \
+              -F caption="🚨 [CI/CD ALERT] Phát hiện lỗi giao diện/chức năng! Đã chặn Deploy. Xem ảnh hiện trường bên trên."
+          else
+            curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+              -d chat_id="$TELEGRAM_CHAT_ID" \
+              -d text="🚨 [CI/CD ALERT] Hệ thống kiểm thử phát hiện lỗi nghiêm trọng! Đã chặn Deploy."
+          fi
 
       # 4. Chỉ Deploy lên GitHub Pages nếu vượt qua toàn bộ bài test khó nhằn
       - name: Setup Pages

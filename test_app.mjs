@@ -4,58 +4,57 @@ import path from 'path';
 (async () => {
   console.log('🤖 Khởi động robot kiểm thử giao diện đa thiết bị...');
   const browser = await chromium.launch();
-  
   const filePath = `file://${path.resolve('app/index.html')}`;
 
-  // ==========================================
-  // 1. KIỂM TRA TRÊN MÁY TÍNH (DESKTOP)
-  // ==========================================
-  console.log('💻 Đang kiểm tra giao diện Desktop...');
-  const desktopContext = await browser.newContext({ viewport: { width: 1280, height: 720 } });
-  const desktopPage = await desktopContext.newPage();
-  
-  // Lắng nghe lỗi ngầm trong code (Console Error)
-  let hasConsoleError = false;
-  desktopPage.on('console', msg => {
-    if (msg.type() === 'error') {
-      console.error(`[Console Error phát hiện]: ${msg.text()}`);
-      hasConsoleError = true;
+  try {
+    // 1. KIỂM TRA TRÊN MÁY TÍNH (DESKTOP)
+    console.log('💻 Đang kiểm tra giao diện Desktop...');
+    const desktopContext = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+    const desktopPage = await desktopContext.newPage();
+
+    let consoleErrors = [];
+    desktopPage.on('console', msg => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text());
+      }
+    });
+
+    await desktopPage.goto(filePath);
+    await desktopPage.fill('#domainInput', 'github.com');
+    await desktopPage.click('#checkBtn');
+
+    try {
+      await desktopPage.waitForSelector('#resultBox.active', { timeout: 4000 });
+    } catch (e) {
+      await desktopPage.screenshot({ path: 'error_screenshot.png', fullPage: true });
+      throw new Error('Lỗi chức năng Desktop: Bấm nút nhưng khung kết quả không hiện!');
     }
-  });
 
-  await desktopPage.goto(filePath);
-  
-  // Thử tương tác: Nhập tên miền và bấm kiểm tra
-  await desktopPage.fill('#domainInput', 'github.com');
-  await desktopPage.click('#checkBtn');
-  await desktopPage.waitForSelector('#resultBox.active', { timeout: 5000 });
-  console.log('✅ Giao diện và chức năng Desktop: HOẠT ĐỘNG TỐT');
+    if (consoleErrors.length > 0) {
+      await desktopPage.screenshot({ path: 'error_screenshot.png', fullPage: true });
+      throw new Error(`Lỗi ngầm JavaScript: ${consoleErrors[0]}`);
+    }
 
-  // ==========================================
-  // 2. KIỂM THỬ TRÊN ĐIỆN THOẠI (MOBILE RESPONSIVE)
-  // ==========================================
-  console.log('📱 Đang kiểm tra giao diện di động (iPhone 13)...');
-  const iPhone = devices['iPhone 13'];
-  const mobileContext = await browser.newContext({ ...iPhone });
-  const mobilePage = await mobileContext.newPage();
+    // 2. KIỂM THỬ TRÊN ĐIỆN THOẠI (MOBILE RESPONSIVE)
+    console.log('📱 Đang kiểm tra giao diện di động (iPhone 13)...');
+    const iPhone = devices['iPhone 13'];
+    const mobileContext = await browser.newContext({ ...iPhone });
+    const mobilePage = await mobileContext.newPage();
 
-  await mobilePage.goto(filePath);
-  
-  // Kiểm tra xem trên màn hình nhỏ các nút bấm có bị tràn hay không
-  const inputVisible = await mobilePage.isVisible('#domainInput');
-  const btnVisible = await mobilePage.isVisible('#checkBtn');
-  
-  if (!inputVisible || !btnVisible) {
-    console.error('❌ LỖI GIAO DIỆN: Các thành phần bị ẩn hoặc tràn màn hình trên mobile!');
+    await mobilePage.goto(filePath);
+    const inputVisible = await mobilePage.isVisible('#domainInput');
+    const btnVisible = await mobilePage.isVisible('#checkBtn');
+
+    if (!inputVisible || !btnVisible) {
+      await mobilePage.screenshot({ path: 'error_screenshot.png', fullPage: true });
+      throw new Error('Lỗi Mobile Responsive: Nút bấm hoặc ô nhập bị ẩn trên điện thoại!');
+    }
+
+    console.log('🎉 TẤT CẢ BÀI TEST ĐÃ VƯỢT QUA HOÀN HẢO!');
+  } catch (err) {
+    console.error(`❌ PHÁT HIỆN LỖI: ${err.message}`);
     process.exit(1);
+  } finally {
+    await browser.close();
   }
-  console.log('✅ Giao diện Mobile Responsive: ĐẠT');
-
-  if (hasConsoleError) {
-    console.error('❌ Phát hiện lỗi JavaScript ngầm trong trang web!');
-    process.exit(1);
-  }
-
-  await browser.close();
-  console.log('🎉 TẤT CẢ BÀI TEST ĐA THIẾT BỊ ĐÃ VƯỢT QUA HOÀN HẢO!');
 })();

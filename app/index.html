@@ -3,195 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NetCheck Pro | Công cụ Kiểm tra Mạng & DevOps</title>
+    <title>NetCheck Pro | Phiên bản Lỗi Giao Diện</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: linear-gradient(135deg, #090d16, #131c31);
-            color: #f8fafc;
-            min-height: 100vh;
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #1e1b4b;
+            color: white;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            height: 100vh;
+            margin: 0;
         }
-        .dashboard {
-            background: rgba(30, 41, 59, 0.75);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(56, 189, 248, 0.2);
-            border-radius: 20px;
-            padding: 35px;
-            max-width: 650px;
-            width: 100%;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            border-bottom: 1px solid #334155;
-            padding-bottom: 15px;
-        }
-        .header h1 {
-            font-size: 1.6rem;
-            background: linear-gradient(to right, #38bdf8, #818cf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .status-badge {
-            background: rgba(34, 197, 94, 0.15);
-            color: #4ade80;
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-        .search-box {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 25px;
+        .broken-box {
+            background: #312e81;
+            padding: 30px;
+            border-radius: 12px;
+            border: 2px dashed #f43f5e;
+            width: 500px;
+            text-align: center;
         }
         input {
-            flex: 1;
-            background: #0f172a;
-            border: 1px solid #334155;
-            color: white;
-            padding: 14px 18px;
-            border-radius: 12px;
-            font-size: 1rem;
-            outline: none;
-            transition: border-color 0.2s;
+            padding: 10px;
+            width: 60%;
+            border-radius: 6px;
+            border: none;
         }
-        input:focus { border-color: #38bdf8; }
         button {
-            background: linear-gradient(135deg, #0284c7, #4f46e5);
+            padding: 10px 20px;
+            background: #f43f5e;
             color: white;
             border: none;
-            padding: 14px 24px;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
+            border-radius: 6px;
             cursor: pointer;
-            transition: opacity 0.2s;
         }
-        button:hover { opacity: 0.9; }
-        .result-card {
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            border-radius: 14px;
-            padding: 20px;
-            display: none;
-        }
-        .result-card.active { display: block; }
-        .metric-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-top: 15px;
-        }
-        .metric {
-            background: rgba(30, 41, 59, 0.6);
-            padding: 12px;
-            border-radius: 10px;
-            text-align: center;
-        }
-        .metric-label { color: #94a3b8; font-size: 0.8rem; margin-bottom: 5px; }
-        .metric-value { font-size: 1.1rem; font-weight: bold; color: #38bdf8; }
-        .online { color: #4ade80 !important; }
-        .offline { color: #f87171 !important; }
-        .footer {
-            margin-top: 25px;
-            text-align: center;
-            color: #64748b;
-            font-size: 0.85rem;
+
+        /* BẪY 1: Lỗi giao diện Mobile - Ẩn nút bấm khi màn hình nhỏ */
+        @media (max-width: 600px) {
+            #checkBtn {
+                display: none !important;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="dashboard">
-        <div class="header">
-            <h1>🌐 NetCheck Pro</h1>
-            <span class="status-badge">● CI/CD Verified</span>
+    <div class="broken-box">
+        <h2>⚠️ Hệ thống đang gặp sự cố giao diện</h2>
+        <p>Trang web này được tạo ra để test robot Playwright bắt lỗi.</p>
+        
+        <div style="margin-top: 20px;">
+            <input type="text" id="domainInput" placeholder="Nhập tên miền...">
+            <button id="checkBtn" onclick="brokenFunction()">Kiểm tra</button>
         </div>
 
-        <p style="color: #94a3b8; margin-bottom: 18px; font-size: 0.95rem;">
-            Nhập tên miền website để kiểm tra trạng thái kết nối, tốc độ phản hồi (Latency) và phân giải DNS.
-        </p>
-
-        <div class="search-box">
-            <input type="text" id="domainInput" placeholder="Ví dụ: google.com, github.com..." value="github.com">
-            <button id="checkBtn" onclick="checkWebsite()">Kiểm tra ngay</button>
-        </div>
-
-        <div id="resultBox" class="result-card">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <strong id="targetDomain" style="font-size: 1.1rem;">github.com</strong>
-                <span id="statusText" class="online">● Đang hoạt động (Online)</span>
-            </div>
-            <div class="metric-grid">
-                <div class="metric">
-                    <div class="metric-label">Phản hồi (Latency)</div>
-                    <div class="metric-value" id="latencyVal">-- ms</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-label">Địa chỉ IP (DNS)</div>
-                    <div class="metric-value" id="ipVal">--.--.--.--</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-label">Giao thức</div>
-                    <div class="metric-value">HTTPS / DNS</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="footer">
-            DevOps Network Project &bull; Vận hành bởi <strong>Lương Trung Hậu</strong>
-        </div>
+        <!-- BẪY 3: Thiếu class 'active' khi bấm nên robot đợi mãi không thấy kết quả -->
+        <div id="resultBox" style="display: none;">Kết quả</div>
     </div>
 
     <script>
-        async function checkWebsite() {
-            const input = document.getElementById('domainInput').value.trim().replace(/^https?:\/\//, '').split('/')[0];
-            if (!input) return alert('Vui lòng nhập tên miền!');
+        // BẪY 2: Cố tình bắn lỗi ngầm ra Console ngay khi mở trang
+        console.error("CRITICAL ERROR: Không thể kết nối tới cơ sở dữ liệu cấu hình!");
 
-            const resultBox = document.getElementById('resultBox');
-            const statusText = document.getElementById('statusText');
-            const latencyVal = document.getElementById('latencyVal');
-            const ipVal = document.getElementById('ipVal');
-            
-            document.getElementById('targetDomain').innerText = input;
-            resultBox.classList.add('active');
-            statusText.innerText = '⏳ Đang quét...';
-            statusText.className = '';
-            latencyVal.innerText = '...';
-            ipVal.innerText = '...';
-
-            const startTime = performance.now();
-            try {
-                // Sử dụng Google Public DNS API để phân giải tên miền thật
-                const response = await fetch(`https://dns.google/resolve?name=${input}&type=A`);
-                const data = await response.json();
-                const endTime = performance.now();
-                const ping = Math.round(endTime - startTime);
-
-                if (data.Status === 0 && data.Answer) {
-                    const ipRecord = data.Answer.find(ans => ans.type === 1);
-                    statusText.innerText = '● Hoạt động tốt (Online)';
-                    statusText.className = 'online';
-                    latencyVal.innerText = `${ping} ms`;
-                    ipVal.innerText = ipRecord ? ipRecord.data : 'Cloud/CDN';
-                } else {
-                    throw new Error('Không tìm thấy bản ghi DNS');
-                }
-            } catch (error) {
-                statusText.innerText = '✖ Không thể truy cập (Offline)';
-                statusText.className = 'offline';
-                latencyVal.innerText = 'Timeout';
-                ipVal.innerText = 'N/A';
-            }
+        function brokenFunction() {
+            alert("Nút này đã bị hỏng chức năng!");
         }
     </script>
 </body>
